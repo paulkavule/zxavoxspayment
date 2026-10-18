@@ -62,9 +62,9 @@ public class MtnProvider(ProviderHttp http, IMemoryCache cache, IConfiguration c
         using var json = JsonDocument.Parse(response.Body);
         var root = json.RootElement;
         var (code, message) = root.TryGetProperty("reason", out var reason) ? Reason(reason) : ("", "");
-        return Text(root, "status") switch
+        return ProviderJson.Text(root, "status") switch
         {
-            "SUCCESSFUL" => new(ProviderState.Successful, FinancialTransactionId: Text(root, "financialTransactionId")),
+            "SUCCESSFUL" => new(ProviderState.Successful, FinancialTransactionId: ProviderJson.Text(root, "financialTransactionId")),
             "FAILED" => new(ProviderState.Failed, code.Length > 0 ? code : "FAILED", message),
             _ => new(ProviderState.Pending),
         };
@@ -89,7 +89,7 @@ public class MtnProvider(ProviderHttp http, IMemoryCache cache, IConfiguration c
         if (info.Status != 200)
             return new(false, "", $"The provider name lookup failed ({info.Status?.ToString() ?? "no answer"})");
         using var user = JsonDocument.Parse(info.Body);
-        var name = $"{Text(user.RootElement, "given_name")} {Text(user.RootElement, "family_name")}".Trim();
+        var name = $"{ProviderJson.Text(user.RootElement, "given_name")} {ProviderJson.Text(user.RootElement, "family_name")}".Trim();
         return name.Length > 0 ? new(true, name, "") : new(false, "", "The provider returned no name");
     }
 
@@ -113,7 +113,7 @@ public class MtnProvider(ProviderHttp http, IMemoryCache cache, IConfiguration c
             return (null, new(ProviderState.NotSent, "PROVIDER_UNAVAILABLE", $"MTN token call failed ({response.Status?.ToString() ?? "no answer"})"));
 
         using var json = JsonDocument.Parse(response.Body);
-        var token = Text(json.RootElement, "access_token");
+        var token = ProviderJson.Text(json.RootElement, "access_token");
         var seconds = json.RootElement.TryGetProperty("expires_in", out var expires) && expires.TryGetInt32(out var s) ? s : 300;
         cache.Set(key, token, TimeSpan.FromSeconds(Math.Max(10, seconds - 60)));
         return (token, null);
@@ -130,13 +130,9 @@ public class MtnProvider(ProviderHttp http, IMemoryCache cache, IConfiguration c
 
     private static string Path(PaymentOrder order) => order.Method == "TRANSFER" ? "transfer" : "deposit";
 
-    private static string Text(JsonElement element, string name) =>
-        element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
-            ? value.GetString()! : string.Empty;
-
     /// <summary>MTN's ErrorReason, which arrives either as {code, message} or as a bare code string.</summary>
     private static (string Code, string Message) Reason(JsonElement reason) =>
-        reason.ValueKind == JsonValueKind.String ? (reason.GetString()!, "") : (Text(reason, "code"), Text(reason, "message"));
+        reason.ValueKind == JsonValueKind.String ? (reason.GetString()!, "") : (ProviderJson.Text(reason, "code"), ProviderJson.Text(reason, "message"));
 
     private static (string Code, string Message) Reason(string body)
     {
