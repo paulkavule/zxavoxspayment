@@ -26,12 +26,12 @@ public class ServiceAccessTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task Health_needs_no_key_and_ready_reports_the_database()
+    public async Task Health_needs_no_key_and_ready_checks_the_database_and_broker()
     {
         var client = fixture.Client(null);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/health/live")).StatusCode);
         var ready = await client.GetAsync("/health/ready");
         Assert.Equal(HttpStatusCode.OK, ready.StatusCode);
-        Assert.Contains("\"database\":true", await ready.Content.ReadAsStringAsync());
+        Assert.Contains("\"rabbitMq\":true", await ready.Content.ReadAsStringAsync());
     }
 }
