@@ -2,8 +2,10 @@ using FastEndpoints;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using zxavoxpaymentapi.Security;
+using zxavoxpaymentapi.Workers;
 using zxavoxpaymentbe;
 using zxavoxpaymentbe.Helpers;
+using zxavoxpaymentbe.Messaging;
 using zxavoxpaymentbe.Security;
 using zxavoxpaymentbe.Services;
 
@@ -14,6 +16,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<PaymentsDbContext>(o => o.UseNpgsql(ServiceEnvironment.DatabaseConnection()));
 builder.Services.AddSingleton(new SecretCipher(Environment.GetEnvironmentVariable(SecretCipher.KeyVariable)));
 builder.Services.AddScoped<ProviderAccountService>();
+builder.Services.AddSingleton(RabbitMqOptions.FromEnvironment());
+builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
+builder.Services.AddScoped<IOutbox, Outbox>();
+builder.Services.AddScoped<IInbox, Inbox>();
+builder.Services.AddScoped<OutboxDispatcher>();
+builder.Services.AddScoped<DeadLetterService>();
+builder.Services.AddHostedService<OutboxPublisherWorker>();
 builder.Services.AddAuthentication(ApiKeyAuthentication.SchemeName)
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthentication>(ApiKeyAuthentication.SchemeName, null);
 builder.Services.AddAuthorization();

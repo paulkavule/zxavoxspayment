@@ -1,5 +1,6 @@
 using FastEndpoints;
 using zxavoxpaymentbe;
+using zxavoxpaymentbe.Messaging;
 
 namespace zxavoxpaymentapi.Features;
 
@@ -14,8 +15,8 @@ public class Live : EndpointWithoutRequest
     public override Task HandleAsync(CancellationToken ct) => Send.OkAsync(new { status = "live" }, ct);
 }
 
-/// <summary>Ready when the database answers. RabbitMQ is added with the messaging step.</summary>
-public class Ready(PaymentsDbContext db) : EndpointWithoutRequest
+/// <summary>Ready when both the database and the broker answer.</summary>
+public class Ready(PaymentsDbContext db, RabbitMqOptions broker) : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -26,7 +27,18 @@ public class Ready(PaymentsDbContext db) : EndpointWithoutRequest
     public override async Task HandleAsync(CancellationToken ct)
     {
         var database = await db.Database.CanConnectAsync(ct);
-        await Send.ResultAsync(Results.Json(new { status = database ? "ready" : "unavailable", database },
-            statusCode: database ? 200 : 503));
+        var rabbitMq = true;
+        try
+        {
+            var factory = broker.Factory();
+            factory.RequestedConnectionTimeout = TimeSpan.FromSeconds(3);
+            await using var connection = await factory.CreateConnectionAsync(ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            rabbitMq = false;
+        }
+        var ready = database && rabbitMq;
+        await Send.ResultAsync(Results.Json(new { status = ready ? "ready" : "unavailable", database, rabbitMq }, statusCode: ready ? 200 : 503));
     }
 }

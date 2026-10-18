@@ -12,6 +12,9 @@ public class PaymentsDbContext(DbContextOptions<PaymentsDbContext> options) : Db
     public DbSet<ProviderCall> ProviderCalls => Set<ProviderCall>();
     public DbSet<BeneficiaryLookupLog> BeneficiaryLookups => Set<BeneficiaryLookupLog>();
     public DbSet<CallbackReceipt> CallbackReceipts => Set<CallbackReceipt>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<ProcessedMessage> ProcessedMessages => Set<ProcessedMessage>();
+    public DbSet<DeadLetterItem> DeadLetterItems => Set<DeadLetterItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,5 +43,16 @@ public class PaymentsDbContext(DbContextOptions<PaymentsDbContext> options) : Db
         modelBuilder.Entity<ProviderCall>().Property(c => c.At).HasColumnType("timestamptz");
         modelBuilder.Entity<BeneficiaryLookupLog>().Property(l => l.LookedUpAt).HasColumnType("timestamptz");
         modelBuilder.Entity<CallbackReceipt>().Property(r => r.ReceivedAt).HasColumnType("timestamptz");
+
+        modelBuilder.Entity<OutboxMessage>().HasIndex(m => m.EventId);
+        modelBuilder.Entity<OutboxMessage>().HasIndex(m => m.Id).HasFilter("\"PublishedAt\" IS NULL").HasDatabaseName("IX_OutboxMessages_Unpublished");
+        modelBuilder.Entity<OutboxMessage>().Property(m => m.CreatedAt).HasColumnType("timestamptz");
+        modelBuilder.Entity<OutboxMessage>().Property(m => m.PublishedAt).HasColumnType("timestamptz");
+        modelBuilder.Entity<OutboxMessage>().Property(m => m.NextAttemptAt).HasColumnType("timestamptz");
+        modelBuilder.Entity<ProcessedMessage>().HasKey(m => new { m.EventId, m.Consumer });
+        modelBuilder.Entity<ProcessedMessage>().Property(m => m.ProcessedAt).HasColumnType("timestamptz");
+        modelBuilder.Entity<DeadLetterItem>().HasIndex(d => d.Status);
+        modelBuilder.Entity<DeadLetterItem>().Property(d => d.DeadLetteredAt).HasColumnType("timestamptz");
+        modelBuilder.Entity<DeadLetterItem>().Property(d => d.ActionedAt).HasColumnType("timestamptz");
     }
 }
