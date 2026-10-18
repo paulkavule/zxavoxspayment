@@ -90,3 +90,41 @@ public class LookupBeneficiary(BeneficiaryService beneficiaries) : Endpoint<Look
             (string)HttpContext.Items["CorrelationId"]!, ct), ct);
     }
 }
+
+/// <summary>
+/// Airtel's callback, registered in its application settings. When a callback key is set, the body's
+/// hash (HMAC-SHA256, Base64) is checked and recorded; either way it only triggers an enquiry.
+/// </summary>
+public class AirtelCallback(PaymentsDbContext db, ProviderAccountService accounts, PaymentProcessor processor) : EndpointWithoutRequest
+{
+    public override void Configure()
+    {
+        Post("/callbacks/airtel");
+        AllowAnonymous();
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        using var reader = new StreamReader(HttpContext.Request.Body);
+        var body = await reader.ReadToEndAsync(ct);
+        var root = zxavoxpaymentbe.Providers.ProviderJson.Parse(body);
+        var id = zxavoxpaymentbe.Providers.ProviderJson.Text(root, "transaction.id");
+        var verified = false;
+        if (Guid.TryParse(id, out var reference) && root.TryGetProperty("transaction", out var transaction)
+            && zxavoxpaymentbe.Providers.ProviderJson.Text(root, "hash") is { Length: > 0 } hash)
+        {
+            var account = await db.PaymentOrders.Where(o => o.ProviderReferenceId == reference)
+                .Join(db.ProviderAccounts, o => o.ProviderAccountId, a => a.Id, (o, a) => a).FirstOrDefaultAsync(ct);
+            if (account is not null && accounts.Secrets(account).TryGetValue("callbackKey", out var key))
+            {
+                var signed = System.Security.Cryptography.HMACSHA256.HashData(System.Text.Encoding.UTF8.GetBytes(key),
+                    System.Text.Encoding.UTF8.GetBytes($"{{\"transaction\":{transaction.GetRawText()}}}"));
+                var given = new byte[64];
+                verified = Convert.TryFromBase64String(hash, given, out var length)
+                    && System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(signed, given.AsSpan(0, length));
+            }
+        }
+        await processor.Hint("AIRTEL", id, body, verified, ct);
+        await Send.ResultAsync(Results.Ok());
+    }
+}

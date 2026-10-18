@@ -21,6 +21,10 @@ public class PaymentProcessor(
     private static readonly TimeSpan Lease = TimeSpan.FromMinutes(2);
     private const int MaxSubmitAttempts = 5;
 
+    /// <summary>Failures caused by our own credentials or setup, not by the payee (plan 11.7).</summary>
+    private static readonly string[] ConfigurationCodes =
+        ["PROVIDER_AUTH_FAILED", "DP00900001016", "ROUTER001", "ROUTER005", "ROUTER007", "ROUTER114", "ROUTER115", "ROUTER116"];
+
     /// <summary>How long a payment is polled before it is left for reconciliation (PAY_STATUS_CUTOFF_HOURS, default 24).</summary>
     public static TimeSpan Cutoff { get; set; } = TimeSpan.FromHours(24);
 
@@ -87,6 +91,7 @@ public class PaymentProcessor(
     /// <summary>Records a provider callback and brings the order's next status check forward. The body is never trusted.</summary>
     public async Task Hint(string provider, string referenceId, string body, bool verified, CancellationToken ct)
     {
+        var reference = Guid.TryParse(referenceId, out var parsed) ? parsed : Guid.Empty;
         db.CallbackReceipts.Add(new CallbackReceipt
         {
             Provider = provider, ReferenceId = referenceId.Length > 100 ? referenceId[..100] : referenceId,
@@ -94,7 +99,7 @@ public class PaymentProcessor(
         });
         await db.SaveChangesAsync(ct);
         await db.PaymentOrders
-            .Where(o => o.Provider == provider && (o.ProviderReferenceId.ToString() == referenceId || o.ExternalRef == referenceId)
+            .Where(o => o.Provider == provider && o.ProviderReferenceId == reference
                 && (o.Status == PaymentOrderStatus.Submitted || o.Status == PaymentOrderStatus.Pending || o.Status == PaymentOrderStatus.PendingUnknown))
             .ExecuteUpdateAsync(s => s.SetProperty(o => o.NextStatusCheckAt, DateTime.UtcNow), ct);
     }
@@ -202,6 +207,9 @@ public class PaymentProcessor(
         outbox.Enqueue(order.OrganisationId, type, MessagingNames.PaymentsExchange, $"{type}.{order.Provider.ToLowerInvariant()}",
             payload, order.ExternalRef, order.CorrelationId, eventId);
 
+        if (ConfigurationCodes.Contains(code))
+            logger.LogCritical("OPS ALERT: {Provider} account {AccountId} is misconfigured; {ExternalRef} failed with {Code}: {Message}",
+                order.Provider, order.ProviderAccountId, order.ExternalRef, code, message);
         if (code is "NOT_ENOUGH_FUNDS" or "PAYER_LIMIT_REACHED")
             logger.LogCritical("OPS ALERT: {Provider} float for organisation {OrganisationId} cannot pay {ExternalRef}: {Code}",
                 order.Provider, order.OrganisationId, order.ExternalRef, code);
