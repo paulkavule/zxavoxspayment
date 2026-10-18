@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="zxavoxpaymentapi.Tests/zxavoxpaymentapi.Tests.csproj" />
+  <Project Path="zxavoxpaymentapi/zxavoxpaymentapi.csproj" />
+  <Project Path="zxavoxpaymentbe/zxavoxpaymentbe.csproj" />
+</Solution>

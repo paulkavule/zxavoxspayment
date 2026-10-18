@@ -1,0 +1,25 @@
+# Payment service. Postgres and RabbitMQ are NOT in this stack; in development they are the
+# same instances DocsApi uses. Set DB_HOST / RABBITMQ_HOST=host.docker.internal in .env.
+#
+#   export GH_PACKAGES_TOKEN=<PAT with read:packages>
+#   docker compose up --build
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: zxavoxpaymentapi/Dockerfile
+      secrets:
+        - ghtoken
+    env_file:
+      - zxavoxpaymentapi/.env
+    # Only Zxadocs should reach it; publish the port on the private network only.
+    ports:
+      - "127.0.0.1:8090:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+secrets:
+  ghtoken:
+    environment: GH_PACKAGES_TOKEN
