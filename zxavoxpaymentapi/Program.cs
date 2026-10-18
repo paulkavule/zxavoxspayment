@@ -28,6 +28,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<ProviderHttp>(c => c.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddScoped<IPaymentProvider, MtnProvider>();
 builder.Services.AddScoped<IPaymentProvider, AirtelProvider>();
+builder.Services.AddScoped<IPaymentProvider, UtilityProvider>();
 builder.Services.AddScoped<PaymentProcessor>();
 builder.Services.AddScoped<PaymentRequestHandler>();
 builder.Services.AddScoped<BeneficiaryService>();
