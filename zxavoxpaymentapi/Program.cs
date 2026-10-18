@@ -6,6 +6,7 @@ using zxavoxpaymentapi.Workers;
 using zxavoxpaymentbe;
 using zxavoxpaymentbe.Helpers;
 using zxavoxpaymentbe.Messaging;
+using zxavoxpaymentbe.Providers;
 using zxavoxpaymentbe.Security;
 using zxavoxpaymentbe.Services;
 
@@ -23,6 +24,17 @@ builder.Services.AddScoped<IInbox, Inbox>();
 builder.Services.AddScoped<OutboxDispatcher>();
 builder.Services.AddScoped<DeadLetterService>();
 builder.Services.AddHostedService<OutboxPublisherWorker>();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<ProviderHttp>(c => c.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddScoped<IPaymentProvider, MtnProvider>();
+builder.Services.AddScoped<PaymentProcessor>();
+builder.Services.AddScoped<PaymentRequestHandler>();
+builder.Services.AddScoped<BeneficiaryService>();
+builder.Services.AddSingleton(PaymentRequestHandler.Definition);
+builder.Services.AddHostedService<QueueConsumerHost<PaymentRequestHandler>>();
+builder.Services.AddHostedService<PaymentWorker>();
+if (int.TryParse(Environment.GetEnvironmentVariable("PAY_STATUS_CUTOFF_HOURS"), out var cutoffHours) && cutoffHours > 0)
+    PaymentProcessor.Cutoff = TimeSpan.FromHours(cutoffHours);
 builder.Services.AddAuthentication(ApiKeyAuthentication.SchemeName)
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthentication>(ApiKeyAuthentication.SchemeName, null);
 builder.Services.AddAuthorization();

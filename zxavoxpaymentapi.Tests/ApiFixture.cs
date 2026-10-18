@@ -1,9 +1,13 @@
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
 using Testcontainers.RabbitMq;
 using zxavoxpaymentbe;
+using zxavoxpaymentbe.Messaging;
+using zxavoxpaymentbe.Providers;
 using zxavoxpaymentbe.Security;
 
 namespace zxavoxpaymentapi.Tests;
@@ -16,6 +20,13 @@ public sealed class ApiFixture : IAsyncLifetime
     private readonly RabbitMqContainer rabbit = new RabbitMqBuilder("rabbitmq:3-management").Build();
     private WebApplicationFactory<Program> factory = default!;
 
+    /// <summary>Answers every provider call; each test scripts its own host.</summary>
+    public FakeProvider Provider { get; } = new();
+
+    public RabbitMqOptions Broker { get; private set; } = default!;
+
+    public IServiceProvider Services => factory.Services;
+
     public async Task InitializeAsync()
     {
         await Task.WhenAll(postgres.StartAsync(), rabbit.StartAsync());
@@ -24,6 +35,7 @@ public sealed class ApiFixture : IAsyncLifetime
         Environment.SetEnvironmentVariable("RABBITMQ_PORT", broker.Port.ToString());
         Environment.SetEnvironmentVariable("RABBITMQ_USER", broker.UserInfo.Split(':')[0]);
         Environment.SetEnvironmentVariable("RABBITMQ_PASSWORD", broker.UserInfo.Split(':')[1]);
+        Broker = RabbitMqOptions.FromEnvironment();
         var connection = new Npgsql.NpgsqlConnectionStringBuilder(postgres.GetConnectionString());
         Environment.SetEnvironmentVariable("DB_HOST", connection.Host);
         Environment.SetEnvironmentVariable("DB_PORT", connection.Port.ToString());
@@ -36,7 +48,8 @@ public sealed class ApiFixture : IAsyncLifetime
 
         await using (var db = NewDb())
             await db.Database.MigrateAsync();
-        factory = new WebApplicationFactory<Program>();
+        factory = new WebApplicationFactory<Program>().WithWebHostBuilder(b => b.ConfigureTestServices(services =>
+            services.AddHttpClient<ProviderHttp>().ConfigurePrimaryHttpMessageHandler(() => Provider)));
     }
 
     public async Task DisposeAsync()
