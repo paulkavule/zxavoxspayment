@@ -98,8 +98,13 @@ public class MtnPaymentTests(ApiFixture fixture)
         var order = await db.PaymentOrders.SingleAsync(o => o.ExternalRef == reference);
         Assert.Equal(PaymentOrderStatus.Failed, order.Status);
         Assert.Equal("NO_PROVIDER_ACCOUNT", order.ReasonCode);
-        var failed = JsonSerializer.Deserialize<PaymentFailed>((await db.OutboxMessages.SingleAsync(m => m.TransactionId == reference)).Payload)!;
+        var failed = JsonSerializer.Deserialize<PaymentFailed>(
+            (await db.OutboxMessages.SingleAsync(m => m.TransactionId == reference && m.Type == "payment.failed")).Payload)!;
         Assert.Equal(order.Id, failed.PaymentId);
+        var alert = await db.OutboxMessages.SingleAsync(m => m.TransactionId == reference && m.Type == "payment.alert");
+        Assert.Equal("payment.alert.utility", alert.RoutingKey);
+        Assert.Equal(("MISCONFIGURED", "NO_PROVIDER_ACCOUNT"),
+            (JsonSerializer.Deserialize<PaymentAlert>(alert.Payload)!.Kind, JsonSerializer.Deserialize<PaymentAlert>(alert.Payload)!.Code));
         Assert.False(await db.ProviderCalls.AnyAsync(c => c.PaymentOrderId == order.Id));
     }
 

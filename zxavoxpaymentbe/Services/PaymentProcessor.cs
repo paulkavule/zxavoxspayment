@@ -11,7 +11,8 @@ namespace zxavoxpaymentbe.Services;
 /// The payment order lifecycle (plan 11.3, 11.6). An event creates the order with its provider reference
 /// already saved; submission marks it PendingUnknown and commits BEFORE the provider call, so a crash
 /// mid-call leaves it to the status poller and it is never sent twice. Final outcomes stage
-/// payment.completed or payment.failed in the outbox with the same save.
+/// payment.completed or payment.failed in the outbox with the same save, and anything operations must
+/// act on also stages a payment.alert (ZD-176).
 /// </summary>
 public class PaymentProcessor(
     PaymentsDbContext db, ProviderAccountService accounts, IEnumerable<IPaymentProvider> providers, IOutbox outbox, ILogger<PaymentProcessor> logger)
@@ -23,7 +24,7 @@ public class PaymentProcessor(
 
     /// <summary>Failures caused by our own credentials or setup, not by the payee (plan 11.7).</summary>
     private static readonly string[] ConfigurationCodes =
-        ["PROVIDER_AUTH_FAILED", "DP00900001016", "ROUTER001", "ROUTER005", "ROUTER007", "ROUTER114", "ROUTER115", "ROUTER116"];
+        ["NO_PROVIDER_ACCOUNT", "PROVIDER_AUTH_FAILED", "DP00900001016", "ROUTER001", "ROUTER005", "ROUTER007", "ROUTER114", "ROUTER115", "ROUTER116"];
 
     /// <summary>How long a payment is polled before it is left for reconciliation (PAY_STATUS_CUTOFF_HOURS, default 24).</summary>
     public static TimeSpan Cutoff { get; set; } = TimeSpan.FromHours(24);
@@ -140,7 +141,10 @@ public class PaymentProcessor(
                 order.ReasonCode = result.ReasonCode;
                 order.ReasonMessage = Trim(result.ReasonMessage, 500);
                 if (++order.StatusChecks >= MaxSubmitAttempts)
+                {
                     Finish(order, PaymentOrderStatus.Failed, result.ReasonCode, result.ReasonMessage);
+                    Alert(order, "RETRIES_EXHAUSTED", result.ReasonCode, $"Not sent after {MaxSubmitAttempts} attempts: {result.ReasonMessage}");
+                }
                 else
                     order.NextStatusCheckAt = DateTime.UtcNow + Backoff[order.StatusChecks - 1];
                 break;
@@ -183,6 +187,7 @@ public class PaymentProcessor(
         order.NextStatusCheckAt = null;
         logger.LogError("Payment {Id} ({ExternalRef}) is still {Status} after {Cutoff}; it needs reconciliation",
             order.Id, order.ExternalRef, order.Status, Cutoff);
+        Alert(order, "STUCK", order.Status.ToString(), $"Still {order.Status} after {Cutoff.TotalHours:0} hours; it needs reconciliation");
     }
 
     private void Finish(PaymentOrder order, PaymentOrderStatus status, string code, string message, string transactionId = "", string receipt = "")
@@ -208,11 +213,27 @@ public class PaymentProcessor(
             payload, order.ExternalRef, order.CorrelationId, eventId);
 
         if (ConfigurationCodes.Contains(code))
+        {
             logger.LogCritical("OPS ALERT: {Provider} account {AccountId} is misconfigured; {ExternalRef} failed with {Code}: {Message}",
                 order.Provider, order.ProviderAccountId, order.ExternalRef, code, message);
+            Alert(order, "MISCONFIGURED", code, message);
+        }
         if (code is "NOT_ENOUGH_FUNDS" or "PAYER_LIMIT_REACHED")
+        {
             logger.LogCritical("OPS ALERT: {Provider} float for organisation {OrganisationId} cannot pay {ExternalRef}: {Code}",
                 order.Provider, order.OrganisationId, order.ExternalRef, code);
+            Alert(order, "FLOAT_LOW", code, message);
+        }
+    }
+
+    /// <summary>Stages a payment.alert for Zxadocs operations; it is committed with the order's save.</summary>
+    private void Alert(PaymentOrder order, string kind, string code, string message)
+    {
+        var eventId = Guid.NewGuid();
+        outbox.Enqueue(order.OrganisationId, "payment.alert", MessagingNames.PaymentsExchange, $"payment.alert.{order.Provider.ToLowerInvariant()}",
+            new PaymentAlert(eventId, order.CorrelationId, order.OrganisationId, order.ExternalRef, order.Provider, order.Id, kind, code,
+                Trim(message, 500), DateTime.UtcNow),
+            order.ExternalRef, order.CorrelationId, eventId);
     }
 
     private IPaymentProvider Provider(PaymentOrder order) => providers.Single(p => p.Name == order.Provider);

@@ -52,10 +52,13 @@ public class AirtelPaymentTests(ApiFixture fixture)
         Assert.Equal(reason, order.ReasonCode);
         Assert.Equal(1, airtel.Count("/standard/v2/disbursements/"));
         await using var db = fixture.NewDb();
-        var failure = await db.OutboxMessages.Where(m => m.TransactionId == reference).ToListAsync();
+        var failure = await db.OutboxMessages.Where(m => m.TransactionId == reference && m.Type == "payment.failed").ToListAsync();
         Assert.Equal(expected == PaymentOrderStatus.Failed ? 1 : 0, failure.Count);
         if (failure.Count == 1)
             Assert.Equal(reason, JsonSerializer.Deserialize<PaymentFailed>(failure[0].Payload)!.ReasonCode);
+        var alerts = await db.OutboxMessages.Where(m => m.TransactionId == reference && m.Type == "payment.alert").ToListAsync();
+        Assert.Equal(reason == "NOT_ENOUGH_FUNDS" ? ["FLOAT_LOW"] : Array.Empty<string>(),
+            alerts.Select(a => JsonSerializer.Deserialize<PaymentAlert>(a.Payload)!.Kind));
     }
 
     [Fact]

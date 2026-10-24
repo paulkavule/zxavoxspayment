@@ -15,7 +15,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.20" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
     <PackageReference Include="RabbitMQ.Client" Version="7.2.2" />
-    <PackageReference Include="pkavule.zxadocslib" Version="1.1.63" />
+    <PackageReference Include="pkavule.zxadocslib" Version="1.1.65" />
   </ItemGroup>
 
 </Project>
