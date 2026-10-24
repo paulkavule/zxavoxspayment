@@ -72,8 +72,15 @@ public class ProviderAccountService(PaymentsDbContext db, SecretCipher cipher)
             .Where(a => a.IsActive && a.Provider == provider && (a.OrganisationId == organisationId || a.OrganisationId == null))
             .OrderBy(a => a.OrganisationId == null).FirstOrDefaultAsync();
 
-    public Dictionary<string, string> Secrets(ProviderAccount account) =>
-        account.Secrets.Length == 0 ? new() : JsonSerializer.Deserialize<Dictionary<string, string>>(cipher.Decrypt(account.Secrets))!;
+    public Dictionary<string, string> Secrets(ProviderAccount account)
+    {
+        if(account.Secrets.Length == 0)
+        return new();
+        
+        var result = JsonSerializer.Deserialize<Dictionary<string, string>>(cipher.Decrypt(account.Secrets))!;
+        return result;
+    }
+        
 
     private string? Apply(ProviderAccount row, ProviderAccountInput input, Dictionary<string, string> secrets)
     {

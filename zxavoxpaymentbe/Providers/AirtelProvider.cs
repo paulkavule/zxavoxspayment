@@ -86,7 +86,12 @@ public class AirtelProvider(ProviderHttp http, IMemoryCache cache) : IPaymentPro
         return new(true, $"{ProviderJson.Text(root, "data.first_name")} {ProviderJson.Text(root, "data.last_name")}".Trim(), "");
     }
 
-    public async Task<string?> Test(ProviderContext context, CancellationToken ct) => (await Token(context, ct)).Error?.ReasonMessage;
+    public async Task<string?> Test(ProviderContext context, CancellationToken ct)
+    {
+         var result = await Token(context, ct);
+
+         return result.Error?.ReasonMessage;
+    }
 
     /// <summary>Maps a disbursement or enquiry answer by transaction status and response code (plan 11.7).</summary>
     private static ProviderResult Outcome(string body, bool submitting)

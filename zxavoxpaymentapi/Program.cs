@@ -1,6 +1,9 @@
 using FastEndpoints;
+using FastEndpoints.OpenApi;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi;
+using Scalar.AspNetCore;
 using zxavoxpaymentapi.Security;
 using zxavoxpaymentapi.Workers;
 using zxavoxpaymentbe;
@@ -40,7 +43,13 @@ if (int.TryParse(Environment.GetEnvironmentVariable("PAY_STATUS_CUTOFF_HOURS"), 
 builder.Services.AddAuthentication(ApiKeyAuthentication.SchemeName)
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthentication>(ApiKeyAuthentication.SchemeName, null);
 builder.Services.AddAuthorization();
-builder.Services.AddFastEndpoints();
+builder.Services.AddFastEndpoints().OpenApiDocument(o =>
+{
+    o.Title = "Zxavox Payments API";
+    o.Version = "v1";
+    o.EnableJWTBearerAuth = false;
+    o.AddAuth(ApiKeyAuthentication.SchemeName, new() { Name = ApiKeys.Header, In = ParameterLocation.Header, Type = SecuritySchemeType.ApiKey });
+});
 
 var app = builder.Build();
 
@@ -59,6 +68,11 @@ app.Use(async (context, next) =>
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseFastEndpoints();
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
 app.Run();
 
 public partial class Program;

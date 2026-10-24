@@ -103,8 +103,10 @@ public class MtnProvider(ProviderHttp http, IMemoryCache cache, IConfiguration c
             return (cached, null);
 
         var request = new HttpRequestMessage(HttpMethod.Post, $"{context.Account.BaseUrl}/token/");
+        var apiUser = context.Secrets["apiUser"];
+        var apiKey = context.Secrets["apiKey"];
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-            Convert.ToBase64String(Encoding.UTF8.GetBytes($"{context.Secrets["apiUser"]}:{context.Secrets["apiKey"]}")));
+            Convert.ToBase64String(Encoding.UTF8.GetBytes($"{apiUser}:{apiKey}")));
         request.Headers.Add("Ocp-Apim-Subscription-Key", context.Secrets["subscriptionKey"]);
         var response = await http.Send(context, "token", request, ct);
         if (response.Status is 401 or 403)

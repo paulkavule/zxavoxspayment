@@ -16,7 +16,7 @@ public class OutboxDispatcher(PaymentsDbContext db, IMessagePublisher publisher,
     {
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var due = await db.OutboxMessages.FromSqlRaw("""
-            SELECT * FROM pay."OutboxMessages"
+            SELECT * FROM payments_api."OutboxMessages"
             WHERE "PublishedAt" IS NULL AND ("NextAttemptAt" IS NULL OR "NextAttemptAt" <= now())
             ORDER BY "Id" LIMIT {0} FOR UPDATE SKIP LOCKED
             """, batchSize).ToListAsync(ct);

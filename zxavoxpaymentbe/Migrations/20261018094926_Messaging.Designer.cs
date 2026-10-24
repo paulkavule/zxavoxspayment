@@ -20,7 +20,7 @@ namespace zxavoxpaymentbe.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasDefaultSchema("pay")
+                .HasDefaultSchema("payments_api")
                 .HasAnnotation("ProductVersion", "8.0.20")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -56,7 +56,7 @@ namespace zxavoxpaymentbe.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("ApiClients", "pay");
+                    b.ToTable("ApiClients", "payments_api");
                 });
 
             modelBuilder.Entity("zxavoxpaymentbe.Entities.BeneficiaryLookupLog", b =>
@@ -94,7 +94,7 @@ namespace zxavoxpaymentbe.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("BeneficiaryLookups", "pay");
+                    b.ToTable("BeneficiaryLookups", "payments_api");
                 });
 
             modelBuilder.Entity("zxavoxpaymentbe.Entities.CallbackReceipt", b =>
@@ -125,7 +125,7 @@ namespace zxavoxpaymentbe.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("CallbackReceipts", "pay");
+                    b.ToTable("CallbackReceipts", "payments_api");
                 });
 
             modelBuilder.Entity("zxavoxpaymentbe.Entities.DeadLetterItem", b =>
@@ -193,7 +193,7 @@ namespace zxavoxpaymentbe.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("DeadLetterItems", "pay");
+                    b.ToTable("DeadLetterItems", "payments_api");
                 });
 
             modelBuilder.Entity("zxavoxpaymentbe.Entities.OutboxMessage", b =>
@@ -257,7 +257,7 @@ namespace zxavoxpaymentbe.Migrations
                         .HasDatabaseName("IX_OutboxMessages_Unpublished")
                         .HasFilter("\"PublishedAt\" IS NULL");
 
-                    b.ToTable("OutboxMessages", "pay");
+                    b.ToTable("OutboxMessages", "payments_api");
                 });
 
             modelBuilder.Entity("zxavoxpaymentbe.Entities.PaymentOrder", b =>
@@ -382,7 +382,7 @@ namespace zxavoxpaymentbe.Migrations
 
                     b.HasIndex("Status", "NextStatusCheckAt");
 
-                    b.ToTable("PaymentOrders", "pay");
+                    b.ToTable("PaymentOrders", "payments_api");
                 });
 
             modelBuilder.Entity("zxavoxpaymentbe.Entities.ProcessedMessage", b =>
@@ -398,7 +398,7 @@ namespace zxavoxpaymentbe.Migrations
 
                     b.HasKey("EventId", "Consumer");
 
-                    b.ToTable("ProcessedMessages", "pay");
+                    b.ToTable("ProcessedMessages", "payments_api");
                 });
 
             modelBuilder.Entity("zxavoxpaymentbe.Entities.ProviderAccount", b =>
@@ -463,7 +463,7 @@ namespace zxavoxpaymentbe.Migrations
 
                     NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("OrganisationId", "Provider"), false);
 
-                    b.ToTable("ProviderAccounts", "pay");
+                    b.ToTable("ProviderAccounts", "payments_api");
                 });
 
             modelBuilder.Entity("zxavoxpaymentbe.Entities.ProviderCall", b =>
@@ -510,7 +510,7 @@ namespace zxavoxpaymentbe.Migrations
 
                     b.HasIndex("PaymentOrderId");
 
-                    b.ToTable("ProviderCalls", "pay");
+                    b.ToTable("ProviderCalls", "payments_api");
                 });
 
             modelBuilder.Entity("zxavoxpaymentbe.Entities.PaymentOrder", b =>

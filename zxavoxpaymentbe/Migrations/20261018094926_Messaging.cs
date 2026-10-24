@@ -14,7 +14,7 @@ namespace zxavoxpaymentbe.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "DeadLetterItems",
-                schema: "pay",
+                schema: "payments_api",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -42,7 +42,7 @@ namespace zxavoxpaymentbe.Migrations
 
             migrationBuilder.CreateTable(
                 name: "OutboxMessages",
-                schema: "pay",
+                schema: "payments_api",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
@@ -68,7 +68,7 @@ namespace zxavoxpaymentbe.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ProcessedMessages",
-                schema: "pay",
+                schema: "payments_api",
                 columns: table => new
                 {
                     EventId = table.Column<Guid>(type: "uuid", nullable: false),
@@ -82,19 +82,19 @@ namespace zxavoxpaymentbe.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_DeadLetterItems_Status",
-                schema: "pay",
+                schema: "payments_api",
                 table: "DeadLetterItems",
                 column: "Status");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OutboxMessages_EventId",
-                schema: "pay",
+                schema: "payments_api",
                 table: "OutboxMessages",
                 column: "EventId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OutboxMessages_Unpublished",
-                schema: "pay",
+                schema: "payments_api",
                 table: "OutboxMessages",
                 column: "Id",
                 filter: "\"PublishedAt\" IS NULL");
@@ -105,15 +105,15 @@ namespace zxavoxpaymentbe.Migrations
         {
             migrationBuilder.DropTable(
                 name: "DeadLetterItems",
-                schema: "pay");
+                schema: "payments_api");
 
             migrationBuilder.DropTable(
                 name: "OutboxMessages",
-                schema: "pay");
+                schema: "payments_api");
 
             migrationBuilder.DropTable(
                 name: "ProcessedMessages",
-                schema: "pay");
+                schema: "payments_api");
         }
     }
 }

@@ -20,7 +20,7 @@ public static class ServiceEnvironment
     }
 
     public static string DatabaseConnection() =>
-        $"Host={Value("DB_HOST", "localhost")};Port={Value("DB_PORT", "5432")};Database={Value("DB_NAME", "zxavoxpayments")};" +
+        $"Host={Value("DB_HOST", "localhost")};Port={Value("DB_PORT", "5432")};Database={Value("DB_NAME", "zxavox")};" +
         $"Username={Value("DB_UNAME", "postgres")};Password={Value("DB_PWORD", "postgres")}";
 
     public static string Value(string name, string fallback) =>

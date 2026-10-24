@@ -3,7 +3,7 @@ using zxavoxpaymentbe.Entities;
 
 namespace zxavoxpaymentbe;
 
-/// <summary>The payment service's own database, zxavoxpayments, schema pay. Nothing here is shared with Zxadocs.</summary>
+/// <summary>The payment service's own database, zxavox, schema payments_api. Nothing here is shared with Zxadocs.</summary>
 public class PaymentsDbContext(DbContextOptions<PaymentsDbContext> options) : DbContext(options)
 {
     public DbSet<ApiClient> ApiClients => Set<ApiClient>();
@@ -18,7 +18,7 @@ public class PaymentsDbContext(DbContextOptions<PaymentsDbContext> options) : Db
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasDefaultSchema("pay");
+        modelBuilder.HasDefaultSchema("payments_api");
 
         modelBuilder.Entity<ApiClient>().HasIndex(c => c.Name).IsUnique();
         modelBuilder.Entity<ApiClient>().HasIndex(c => c.KeyHash).IsUnique();

@@ -112,7 +112,7 @@ public class PaymentProcessor(
     {
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var order = (await db.PaymentOrders.FromSqlRaw("""
-            SELECT *, xmin FROM pay."PaymentOrders"
+            SELECT *, xmin FROM payments_api."PaymentOrders"
             WHERE ({0} = 0 AND "Status" IN (2, 3, 4) AND "NextStatusCheckAt" <= now())
                OR ({0} <> 0 AND "Status" = {0} AND ("NextStatusCheckAt" IS NULL OR "NextStatusCheckAt" <= now()))
             ORDER BY "Id" LIMIT 1 FOR UPDATE SKIP LOCKED

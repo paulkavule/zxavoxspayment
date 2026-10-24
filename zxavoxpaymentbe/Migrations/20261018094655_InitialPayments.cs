@@ -13,11 +13,11 @@ namespace zxavoxpaymentbe.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.EnsureSchema(
-                name: "pay");
+                name: "payments_api");
 
             migrationBuilder.CreateTable(
                 name: "ApiClients",
-                schema: "pay",
+                schema: "payments_api",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -34,7 +34,7 @@ namespace zxavoxpaymentbe.Migrations
 
             migrationBuilder.CreateTable(
                 name: "BeneficiaryLookups",
-                schema: "pay",
+                schema: "payments_api",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
@@ -54,7 +54,7 @@ namespace zxavoxpaymentbe.Migrations
 
             migrationBuilder.CreateTable(
                 name: "CallbackReceipts",
-                schema: "pay",
+                schema: "payments_api",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
@@ -72,7 +72,7 @@ namespace zxavoxpaymentbe.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ProviderAccounts",
-                schema: "pay",
+                schema: "payments_api",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -98,7 +98,7 @@ namespace zxavoxpaymentbe.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ProviderCalls",
-                schema: "pay",
+                schema: "payments_api",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
@@ -120,7 +120,7 @@ namespace zxavoxpaymentbe.Migrations
 
             migrationBuilder.CreateTable(
                 name: "PaymentOrders",
-                schema: "pay",
+                schema: "payments_api",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
@@ -160,7 +160,7 @@ namespace zxavoxpaymentbe.Migrations
                     table.ForeignKey(
                         name: "FK_PaymentOrders_ProviderAccounts_ProviderAccountId",
                         column: x => x.ProviderAccountId,
-                        principalSchema: "pay",
+                        principalSchema: "payments_api",
                         principalTable: "ProviderAccounts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -168,47 +168,47 @@ namespace zxavoxpaymentbe.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_ApiClients_KeyHash",
-                schema: "pay",
+                schema: "payments_api",
                 table: "ApiClients",
                 column: "KeyHash",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ApiClients_Name",
-                schema: "pay",
+                schema: "payments_api",
                 table: "ApiClients",
                 column: "Name",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_PaymentOrders_ClientId_ExternalRef",
-                schema: "pay",
+                schema: "payments_api",
                 table: "PaymentOrders",
                 columns: new[] { "ClientId", "ExternalRef" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_PaymentOrders_ProviderAccountId",
-                schema: "pay",
+                schema: "payments_api",
                 table: "PaymentOrders",
                 column: "ProviderAccountId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PaymentOrders_ProviderReferenceId",
-                schema: "pay",
+                schema: "payments_api",
                 table: "PaymentOrders",
                 column: "ProviderReferenceId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_PaymentOrders_Status_NextStatusCheckAt",
-                schema: "pay",
+                schema: "payments_api",
                 table: "PaymentOrders",
                 columns: new[] { "Status", "NextStatusCheckAt" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProviderAccounts_OrganisationId_Provider",
-                schema: "pay",
+                schema: "payments_api",
                 table: "ProviderAccounts",
                 columns: new[] { "OrganisationId", "Provider" },
                 unique: true)
@@ -216,7 +216,7 @@ namespace zxavoxpaymentbe.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProviderCalls_PaymentOrderId",
-                schema: "pay",
+                schema: "payments_api",
                 table: "ProviderCalls",
                 column: "PaymentOrderId");
         }
@@ -226,27 +226,27 @@ namespace zxavoxpaymentbe.Migrations
         {
             migrationBuilder.DropTable(
                 name: "ApiClients",
-                schema: "pay");
+                schema: "payments_api");
 
             migrationBuilder.DropTable(
                 name: "BeneficiaryLookups",
-                schema: "pay");
+                schema: "payments_api");
 
             migrationBuilder.DropTable(
                 name: "CallbackReceipts",
-                schema: "pay");
+                schema: "payments_api");
 
             migrationBuilder.DropTable(
                 name: "PaymentOrders",
-                schema: "pay");
+                schema: "payments_api");
 
             migrationBuilder.DropTable(
                 name: "ProviderCalls",
-                schema: "pay");
+                schema: "payments_api");
 
             migrationBuilder.DropTable(
                 name: "ProviderAccounts",
-                schema: "pay");
+                schema: "payments_api");
         }
     }
 }
