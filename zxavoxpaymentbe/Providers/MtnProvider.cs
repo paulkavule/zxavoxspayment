@@ -29,7 +29,9 @@ public class MtnProvider(ProviderHttp http, IMemoryCache cache, IConfiguration c
             request.Headers.Add("X-Callback-Url", $"{callbackBase.TrimEnd('/')}/callbacks/mtn/{order.ProviderReferenceId}");
         request.Content = JsonContent.Create(new
         {
-            amount = order.Amount.ToString("0.##", CultureInfo.InvariantCulture), currency = context.Account.Currency, externalId = order.ExternalRef,
+            amount = order.Amount.ToString("0.##", CultureInfo.InvariantCulture), 
+            currency = context.Account.Currency, 
+            externalId = order.ExternalRef,
             payee = new { partyIdType = "MSISDN", partyId = order.PayeeId }, payerMessage = order.PayerMessage, payeeNote = order.PayeeNote,
         });
 
