@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
+using zxavoxpaymentapi.Health;
 using zxavoxpaymentapi.Security;
 using zxavoxpaymentapi.Workers;
 using zxavoxpaymentbe;
@@ -51,6 +52,9 @@ builder.Services.AddFastEndpoints().OpenApiDocument(o =>
     o.AddAuth(ApiKeyAuthentication.SchemeName, new() { Name = ApiKeys.Header, In = ParameterLocation.Header, Type = SecuritySchemeType.ApiKey });
 });
 
+// Liveness and readiness for deployment probes and for Zxadocs' payment-service check (ZD-296).
+builder.Services.AddPaymentChecks();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -68,6 +72,7 @@ app.Use(async (context, next) =>
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseFastEndpoints();
+app.MapHealth();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

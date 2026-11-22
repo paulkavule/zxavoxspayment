@@ -2,7 +2,7 @@ using System.Net;
 
 namespace zxavoxpaymentapi.Tests;
 
-/// <summary>ZD-338: only a known, active client key reaches the API; health stays open for probes.</summary>
+/// <summary>ZD-338: only a known, active client key reaches the API; health stays open for probes (ZD-296).</summary>
 [Collection(ApiCollection.Name)]
 public class ServiceAccessTests(ApiFixture fixture)
 {
@@ -26,12 +26,20 @@ public class ServiceAccessTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task Health_needs_no_key_and_ready_checks_the_database_and_broker()
+    public async Task Health_needs_no_key_and_ready_reports_each_check_without_secrets()
     {
         var client = fixture.Client(null);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/health/live")).StatusCode);
         var ready = await client.GetAsync("/health/ready");
         Assert.Equal(HttpStatusCode.OK, ready.StatusCode);
-        Assert.Contains("\"rabbitMq\":true", await ready.Content.ReadAsStringAsync());
+
+        // ZD-296: every readiness check is listed with counts only.
+        using var body = System.Text.Json.JsonDocument.Parse(await ready.Content.ReadAsStringAsync());
+        var checks = body.RootElement.GetProperty("checks");
+        Assert.Equal(["database", "dead-letters", "outbox", "providers", "rabbitmq", "stuck-payments"],
+            checks.EnumerateObject().Select(c => c.Name).Order());
+        Assert.Equal("Healthy", checks.GetProperty("rabbitmq").GetProperty("status").GetString());
+        Assert.DoesNotContain(ApiFixture.ClientKey, body.RootElement.GetRawText());
+        Assert.DoesNotContain("Password", body.RootElement.GetRawText());
     }
 }
